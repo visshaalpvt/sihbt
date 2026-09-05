@@ -88,9 +88,14 @@ def _fetch_with_playwright(debug=False):
         print(f"[collector] Loading {SIH_URL} ...")
         page.goto(SIH_URL, timeout=PAGE_LOAD_TIMEOUT_MS, wait_until="load")
 
-        # Wait for DataTables to finish its initial render (default: page 1,
-        # 10 rows) before we try to touch its API.
-        page.wait_for_selector(ROW_SELECTOR, timeout=PAGE_LOAD_TIMEOUT_MS)
+        try:
+            page.wait_for_selector(ROW_SELECTOR, timeout=PAGE_LOAD_TIMEOUT_MS)
+        except Exception:
+            print("[collector] TIMEOUT waiting for table. Page title was:", page.title())
+            print("[collector] Current URL:", page.url)
+            print("[collector] First 2000 chars of page HTML:")
+            print(page.content()[:2000])
+            raise
 
         # Force "show all" via the DataTables API directly -- the dropdown
         # UI only exposes 10/25/50/100, but the API accepts -1 regardless.
