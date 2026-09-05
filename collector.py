@@ -50,15 +50,29 @@ SETUP (one-time):
     playwright install chromium
 """
 
+import os
 import re
 import sys
 
 from bs4 import BeautifulSoup
 
 SIH_URL = "https://www.sih.gov.in/sih2026PS"
-PAGE_LOAD_TIMEOUT_MS = 60000
+PAGE_LOAD_TIMEOUT_MS = 120000
 TABLE_SELECTOR = "#dataTablePS"
 ROW_SELECTOR = f"{TABLE_SELECTOR} tbody tr[role='row']"
+
+# The SIH portal sits behind an Azure gateway that 403s requests from
+# foreign/cloud IP ranges (confirmed empirically). Routing through
+# ScraperAPI's country_code=in proxy gets an Indian residential/datacenter
+# IP that the gateway allows through. Set SCRAPERAPI_KEY in the environment
+# to enable this; if unset, falls back to a direct connection (works fine
+# locally on a normal Indian home connection, just not from most cloud hosts).
+SCRAPERAPI_KEY = os.environ.get("SCRAPERAPI_KEY", "")
+SCRAPERAPI_PROXY = {
+    "server": "http://proxy-server.scraperapi.com:8001",
+    "username": "scraperapi.country_code=in",
+    "password": SCRAPERAPI_KEY,
+}
 
 
 def fetch_problem_statements(debug=False):
@@ -76,18 +90,33 @@ def _fetch_with_playwright(debug=False):
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not debug)
-        context = browser.new_context(
+        context_kwargs = dict(
             user_agent=(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                 "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             ),
             viewport={"width": 1280, "height": 900},
+            ignore_https_errors=True,
         )
+        if SCRAPERAPI_KEY:
+            print("[collector] Routing through ScraperAPI (country_code=in) proxy...")
+            context_kwargs["proxy"] = SCRAPERAPI_PROXY
+        else:
+            print("[collector] SCRAPERAPI_KEY not set -- connecting directly "
+                  "(will fail with 403 on most cloud hosts; fine on a normal "
+                  "Indian home connection).")
+        context = browser.new_context(**context_kwargs)
         page = context.new_page()
 
         print(f"[collector] Loading {SIH_URL} ...")
-        page.goto(SIH_URL, timeout=PAGE_LOAD_TIMEOUT_MS, wait_until="load")
+        # domcontentloaded (not "load") -- over the proxy, waiting for every
+        # subresource (analytics, trackers, fonts) to finish can hang far
+        # past the nominal timeout. We only need the DOM; the table selector
+        # wait below covers the rest.
+        page.goto(SIH_URL, timeout=PAGE_LOAD_TIMEOUT_MS, wait_until="domcontentloaded")
 
+        # Wait for DataTables to finish its initial render (default: page 1,
+        # 10 rows) before we try to touch its API.
         try:
             page.wait_for_selector(ROW_SELECTOR, timeout=PAGE_LOAD_TIMEOUT_MS)
         except Exception:
