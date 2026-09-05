@@ -56,7 +56,7 @@ import sys
 from bs4 import BeautifulSoup
 
 SIH_URL = "https://www.sih.gov.in/sih2026PS"
-PAGE_LOAD_TIMEOUT_MS = 30000
+PAGE_LOAD_TIMEOUT_MS = 60000
 TABLE_SELECTOR = "#dataTablePS"
 ROW_SELECTOR = f"{TABLE_SELECTOR} tbody tr[role='row']"
 
