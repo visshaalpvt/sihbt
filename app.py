@@ -38,13 +38,18 @@ DASHBOARD_TEMPLATE = """
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SIH 2026 Tracker Assistant</title>
   <style>
     * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      overflow-x: hidden;
+    }
     body {
       font-family: 'Segoe UI', -apple-system, sans-serif;
       background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%);
-      margin: 0; min-height: 100vh;
+      min-height: 100vh;
       display: flex; align-items: center; justify-content: center;
       padding: 24px;
     }
@@ -67,6 +72,7 @@ DASHBOARD_TEMPLATE = """
     }
     .msg-user, .msg-bot {
       margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; max-width: 85%;
+      word-break: break-word; overflow-wrap: break-word;
     }
     .msg-user {
       background: #6366f1; color: white; margin-left: auto;
@@ -80,15 +86,49 @@ DASHBOARD_TEMPLATE = """
     #chatInput {
       flex: 1; padding: 12px 16px; border-radius: 12px;
       border: 1px solid #e2e8f0; font-size: 14px; outline: none;
+      min-height: 44px;
     }
     #chatInput:focus { border-color: #6366f1; }
     button {
       padding: 12px 22px; border-radius: 12px; border: none;
       background: linear-gradient(90deg, #6366f1, #8b5cf6);
       color: white; font-weight: 600; cursor: pointer; font-size: 14px;
+      min-height: 44px; min-width: 64px;
+      touch-action: manipulation;
     }
     button:hover { opacity: 0.9; }
     .placeholder { color: #94a3b8; font-size: 13px; text-align: center; padding: 40px 0; }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 12px;
+        align-items: stretch;
+      }
+      .card {
+        padding: 20px 16px;
+        border-radius: 16px;
+      }
+      .header h1 {
+        font-size: 20px;
+      }
+      .header p {
+        font-size: 12px;
+      }
+      #chatLog {
+        padding: 12px;
+        font-size: 15px;
+        min-height: 300px;
+        max-height: 55vh;
+      }
+      #chatInput {
+        font-size: 16px; /* Prevents auto-zoom on iOS focus */
+        padding: 12px 14px;
+      }
+      button {
+        font-size: 15px;
+        padding: 12px 18px;
+      }
+    }
   </style>
 </head>
 <body>
