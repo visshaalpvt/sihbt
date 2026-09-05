@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: sih-tracker
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt && playwright install --with-deps chromium"
+    startCommand: "gunicorn app:app --workers 1 --threads 4 --timeout 120"
+    envVars:
+      - key: EMAIL_ADDRESS
+        sync: false
+      - key: EMAIL_APP_PASSWORD
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: POLL_INTERVAL_SECONDS
+        value: "300"
+      - key: PYTHON_VERSION
+        value: "3.11.9"

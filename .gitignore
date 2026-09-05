@@ -1,0 +1,9 @@
+.env
+_env
+sih_tracker.db
+debug_page.html
+debug_screenshot.png
+__pycache__/
+*.pyc
+venv/
+.venv/
