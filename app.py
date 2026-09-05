@@ -15,7 +15,7 @@ import scheduler
 import analytics
 
 app = Flask(__name__)
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPEN_ROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "minimax/minimax-m3:free")
 _scheduler_lock = threading.Lock()
 _scheduler_started = False
