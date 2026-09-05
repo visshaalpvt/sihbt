@@ -20,3 +20,5 @@ services:
         value: "3.11.9"
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: SYNC_SECRET
+        sync: false

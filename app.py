@@ -167,6 +167,47 @@ def dashboard():
 @app.route("/health")
 def health():
     return {"status": "ok"}, 200
+
+
+SYNC_SECRET = os.environ.get("SYNC_SECRET", "")
+
+
+@app.route("/sync", methods=["POST"])
+def sync():
+    """Accepts scraped PS data (pushed from a laptop/machine that isn't
+    blocked by the SIH site's WAF) and writes it into this app's own
+    database, exactly as if the local scheduler had fetched it itself."""
+    if not SYNC_SECRET:
+        return {"error": "SYNC_SECRET not configured on server"}, 500
+    if request.headers.get("X-Sync-Secret", "") != SYNC_SECRET:
+        return {"error": "unauthorized"}, 401
+
+    payload = request.json or {}
+    ps_list = payload.get("problem_statements", [])
+    if not ps_list:
+        return {"error": "no problem_statements in payload"}, 400
+
+    sync_id = db.log_sync_start()
+    try:
+        events = []
+        for ps in ps_list:
+            event = db.upsert_problem_statement(
+                ps_id=ps["ps_id"],
+                title=ps["title"],
+                organization=ps.get("organization", ""),
+                category=ps.get("category", ""),
+                theme=ps.get("theme", ""),
+                count=ps["count"],
+            )
+            if event:
+                events.append(event)
+        db.log_sync_end(sync_id, "success", ps_count=len(ps_list))
+        return {"status": "ok", "ps_count": len(ps_list), "events": len(events)}
+    except Exception as e:
+        db.log_sync_end(sync_id, "failed", error_message=str(e))
+        return {"error": str(e)}, 500
+
+
 @app.route("/chat", methods=["POST"])
 def chat():
     question = (request.json or {}).get("question", "").strip()
@@ -224,6 +265,7 @@ def chat():
         answer = f"Something went wrong talking to the AI: {e}"
 
     return {"answer": answer}
+
 
 start_scheduler_background()
 
