@@ -14,9 +14,15 @@ DB_PATH = "sih_tracker.db"
 
 @contextmanager
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    # WAL mode lets reads (like the chat endpoint) happen while the
+    # scheduler is mid-write, instead of one blocking the other.
+    conn.execute("PRAGMA journal_mode = WAL")
+    # If a lock is still held for some reason, retry for up to 30s instead
+    # of immediately throwing "database is locked".
+    conn.execute("PRAGMA busy_timeout = 30000")
     try:
         yield conn
         conn.commit()
